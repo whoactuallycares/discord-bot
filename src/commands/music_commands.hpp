@@ -1,8 +1,8 @@
 #pragma once
 #include <dpp/dpp.h>
-#include <player/queue.hpp>
+#include <player/player.hpp>
 
-queue q;
+player q;
 
 inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& event, std::vector<std::string> _args)
 {
