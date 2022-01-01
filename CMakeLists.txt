@@ -5,11 +5,19 @@ project ("Bot" CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/lib/DPP")
+add_subdirectory("${CMAKE_SOURCE_DIR}/lib/fmt")
 
 add_executable(bot "src/main.cpp")
 target_include_directories(bot PRIVATE "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/lib/DPP/include" "${CMAKE_SOURCE_DIR}/lib/mpg123/src" "/usr/include/opus/" "${CMAKE_BINARY_DIR}")
-#target_link_libraries(bot PRIVATE dpp ogg opus opusfile pthread)
-target_link_libraries(bot PRIVATE dpp)
+
+if (UNIX)
+	target_link_libraries(bot PRIVATE dpp ogg opus opusfile pthread fmt)
+else()
+	target_link_libraries(bot PRIVATE dpp fmt)
+endif (UNIX)
+
+# Create folder for stroring downloaded music
+make_directory("${CMAKE_BINARY_DIR}/songs")
 
 # Configure help file
 set(HELP "")
