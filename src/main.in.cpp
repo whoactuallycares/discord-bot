@@ -6,16 +6,78 @@
 #include "player/player.hpp"
 //#include "per_guild.hpp"
 #include <select_command.hpp>
+#include <string_view>
 
-void command_parse(std::string _msg, std::vector<std::string>& _args)
+std::vector<std::string_view> command_parse(std::string_view _msg)
 {
+    std::vector<std::string_view> args;
     uint32_t end = 1, beg;
     while (_msg[end])
     {
         beg = end;
-		for (; _msg[end] && (_msg[end] != ' '); end++);
-		_args.push_back(std::string(_msg.begin() + beg, _msg.begin() + end));
+		for (; _msg.size() != end && (_msg[end] != ' '); end++);
+		args.push_back(_msg.substr(beg, end - beg));
 		while (_msg[end] && _msg[++end] == ' ');
+    };
+    return args;
+};
+
+// Find a string in an array of strings that begins with this string
+uint32_t find(std::string _str, std::vector<std::string> _strs)
+{
+    uint32_t i = 0;
+    uint32_t j = 0;
+    start:
+    if (_str[j] == _strs[i][j])
+    {
+        if (_str[j] == _strs[i + 1][j])
+        {
+            // ambiguous
+            if (j + 1 < _str.size())
+                j++;
+            else
+                return ~0; // either ambiguous or wrong
+            goto start;
+        }
+        else
+        {
+            //it's this one
+            return i; // either right or wrong
+        };
+    }
+    else
+    {
+		if (i + 1 < _strs.size())
+			i++;
+		else
+			return ~0; // didnt find
+        goto start;
+    };
+
+    while (true)
+    {
+		if (_str[j] == _strs[i][j])
+		{
+			if (_str[j] == _strs[i + 1][j])
+			{
+				if (j + 1 < _str.size())
+					j++;
+				else
+					return ~0; // Ambiguous
+			}
+			else
+			{
+                while ((_str[j] && _strs[i][j]) && (_str[j++] == _strs[i][j]));
+				return !_str[j] ? i : ~0; // This one or pattern doesn't match
+			};
+		}
+		else
+		{
+			if (i + 1 < _strs.size())
+				i++;
+			else
+				return ~0; // Didn't find
+		};
     };
 };
 
@@ -62,15 +124,12 @@ int main()
         bot.global_command_create(newcommand);
 	});
 
-    queue q;
-    bot.on_message_create([&bot, &q](const auto& event) {
+    bot.on_message_create([&bot](const auto& event) {
         if (event.msg.content[0] != '!')
         {
             return;
         };
-        std::vector<std::string> args;
-        command_parse(event.msg.content, args);
-        select_command(bot, event, args);
+        select_command(bot, event, command_parse(event.msg.content));
 	});
 
     bot.start(false);

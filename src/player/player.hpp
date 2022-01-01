@@ -1,9 +1,11 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <string_view>
 
 struct song
 {
+	song(std::string_view& _strView, uint32_t _len) : name_(_strView), length_(_len) {};
 	std::string name_;
 	uint32_t length_;
 };

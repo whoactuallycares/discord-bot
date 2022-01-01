@@ -23,11 +23,12 @@ foreach(COMMAND_DESCRIPTION IN LISTS data)
   "\n\t\t\tadd_field(\"${COMMAND_NAME}\",\"${COMMAND_DESCRIPTION}\")."
   )
   string(APPEND COMMANDS
-  "\n\telse if (!strcmp(_args[0].c_str(), \"${COMMAND_NAME}\")) { command_${COMMAND_NAME}(_bot, _event, _args); }"
+  "\n\telse if (!std::strncmp(_args[0].data(), \"${COMMAND_NAME}\", _args[0].size())) { command_${COMMAND_NAME}(_bot, _event, _args); }"
   )
 endforeach()
 
 configure_file("src/select_command.in.hpp" "select_command.hpp")
 
+# Add token to main file
 file(READ ".token" TOKEN)
 configure_file("src/main.in.cpp" "src/main.cpp")

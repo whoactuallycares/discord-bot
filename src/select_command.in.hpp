@@ -3,9 +3,9 @@
 #include <dpp/dpp.h>
 #include "commands/commands.hpp"
 
-inline void select_command(dpp::cluster& _bot, const dpp::message_create_t& _event, std::vector<std::string> _args)
+inline void select_command(dpp::cluster& _bot, const dpp::message_create_t& _event, std::vector<std::string_view> _args)
 {
-	if (!strcmp(_args[0].c_str(), "help"))
+	if (!std::strncmp(_args[0].data(), "help", _args[0].size()))
 	{
 		dpp::embed embed = dpp::embed().
 			set_color(0xfafafa).
@@ -16,6 +16,6 @@ inline void select_command(dpp::cluster& _bot, const dpp::message_create_t& _eve
 	}@COMMANDS@
 	else
 	{
-		_bot.message_create(dpp::message(_event.msg.channel_id, "Unknown command \"" + _args[0] + "\". Type `!help` for more information."));
+		_bot.message_create(dpp::message(_event.msg.channel_id, "Unknown command \"" + std::string(_args[0]) + "\". Type `!help` for more information."));
 	};
 };
