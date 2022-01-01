@@ -1,6 +1,8 @@
 ping,Pong
 play,Play a song
+join,Join the voicechannel
 queue,Display the current queue
 skip,Skip the currently playing song
 jump,Jump to a different song
 move,Move a song to a different slot
+nowplaying,Display the currently playing song

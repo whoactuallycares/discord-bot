@@ -1,58 +1,230 @@
 #pragma once
 #include <dpp/dpp.h>
-#include <player/player.hpp>]
+#include <player/player.hpp>
+#include <fmt/core.h>
+#ifdef __linux__
+#include <iomanip>
+#include <sstream>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <ogg/ogg.h>
+#include <opus/opusfile.h>
+#endif // __linux__
+#include <thread>
+#include <chrono>
+using namespace std::chrono_literals;
 
 player q;
 
-inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& event, std::vector<std::string_view> _args)
+inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
-    // play file
-    // play link
-    // play name
-
-    // join the vc
-    if (!dpp::find_guild(event.msg.guild_id)->connect_member_voice(event.msg.author.id, false, true))
+    if (!dpp::find_guild(_event.msg.guild_id)->connect_member_voice(_event.msg.author.id, false, true))
     {
-        _bot.message_create(dpp::message(event.msg.channel_id, "You need to be in a voicechannel."));
+        _bot.message_create(dpp::message(_event.msg.channel_id, "You need to be in a voicechannel."));
+        return;
     };
 
-    if (_args.size() > 1)
+	if (_event.msg.filename.size() > 0)
+	{
+		_bot.message_create(dpp::message(_event.msg.channel_id, "a File"));
+	}
+    else if (_args.size() > 1)
     {
-        q.song_add({ _args[1], 100 });
-    };
+        std::cout << _event.msg.filename << "\n";
+        if (_event.msg.content.find("http://") != std::string::npos || _event.msg.content.find("https://") != std::string::npos)
+        {
+            if (_event.msg.content.find("spotify.com/") != std::string::npos)
+            {
+                _bot.message_create(dpp::message(_event.msg.channel_id, "spotDL" + std::string(_args[1])));
+            }
+            else
+            {
+				q.song_add(yt_dlp_url(std::string(_args[1])));
+            };
+        }
+        else
+        {
+			q.song_add(yt_dlp_search(std::string(_args[1].data(), _event.msg.content.size() - (_args[1].data() - _args[0].data() + 1))));
+        };
+		dpp::embed embed = dpp::embed().
+			set_color(0xfafafa).
+			set_title(q[q.nSongs() - 1].title_).
+            set_url(q[q.nSongs() - 1].url_).
+			set_description(fmt::format("\
+				Length : **{}**\
+				Position in queue : **{}**\
+			", q[q.nSongs() - 1].duration_, q.nSongs()
+			)).
+            set_image(q[q.nSongs() - 1].thumbnail_).
+			set_footer(dpp::embed_footer().set_text(":3")).
+			set_timestamp(time(0));
+		_bot.message_create(dpp::message(_event.msg.channel_id, embed));
+		q.playing_ = true;
+		// play
+		dpp::voiceconn* v = _event.from->get_voice(_event.msg.guild_id);
+		if (v && v->voiceclient && v->voiceclient->is_ready())
+		{
+#ifdef __linux__ 
+			ogg_sync_state oy;
+			ogg_stream_state os;
+			ogg_page og;
+			ogg_packet op;
+			OpusHead header;
+			char* buffer;
 
-    q.playing_ = true;
-    // play
-    dpp::voiceconn* v = event.from->get_voice(event.msg.guild_id);
-    if (v && v->voiceclient && v->voiceclient->is_ready())
-    {
-        _bot.message_create(dpp::message(event.msg.channel_id, "Playing " + std::string(_args[0])));
+			FILE* fd = nullptr;
+			for (uint32_t i = 0; i < 100; i++)
+			{
+				std::this_thread::sleep_for(50ms);
+				fd = fopen(std::string("songs/" + q[0].id_ + ".opus").c_str(), "rb");
+			};
+			if (!fd)
+			{
+				_bot.message_create(dpp::message(_event.msg.channel_id, "Failed to open audio file"));
+				return;
+			};
+			_bot.message_create(dpp::message(_event.msg.channel_id, "Playing " + std::string(_args[1])));
+
+			fseek(fd, 0L, SEEK_END);
+			size_t sz = ftell(fd);
+			rewind(fd);
+
+			ogg_sync_init(&oy);
+
+			int eos = 0;
+			int i;
+
+			buffer = ogg_sync_buffer(&oy, sz);
+			fread(buffer, 1, sz, fd);
+
+			ogg_sync_wrote(&oy, sz);
+
+			if (ogg_sync_pageout(&oy, &og) != 1)
+			{
+				fprintf(stderr, "Does not appear to be ogg stream.\n");
+				exit(1);
+			}
+
+			ogg_stream_init(&os, ogg_page_serialno(&og));
+
+			if (ogg_stream_pagein(&os, &og) < 0) {
+				fprintf(stderr, "Error reading initial page of ogg stream.\n");
+				exit(1);
+			}
+
+			if (ogg_stream_packetout(&os, &op) != 1)
+			{
+				fprintf(stderr, "Error reading header packet of ogg stream.\n");
+				exit(1);
+			}
+
+			/* We must ensure that the ogg stream actually contains opus data */
+			if (!(op.bytes > 8 && !memcmp("OpusHead", op.packet, 8)))
+			{
+				fprintf(stderr, "Not an ogg opus stream.\n");
+				exit(1);
+			}
+
+			/* Parse the header to get stream info */
+			int err = opus_head_parse(&header, op.packet, op.bytes);
+			if (err)
+			{
+				fprintf(stderr, "Not a ogg opus stream\n");
+				exit(1);
+			}
+			/* Now we ensure the encoding is correct for Discord */
+			if (header.channel_count != 2 && header.input_sample_rate != 48000)
+			{
+				fprintf(stderr, "Wrong encoding for Discord, must be 48000Hz sample rate with 2 channels.\n");
+				exit(1);
+			}
+
+			/* Now loop though all the pages and send the packets to the vc */
+			while (ogg_sync_pageout(&oy, &og) == 1) {
+				ogg_stream_init(&os, ogg_page_serialno(&og));
+
+				if (ogg_stream_pagein(&os, &og) < 0) {
+					fprintf(stderr, "Error reading page of Ogg bitstream data.\n");
+					exit(1);
+				}
+
+				while (ogg_stream_packetout(&os, &op) != 0)
+				{
+					/* Read remaining headers */
+					if (op.bytes > 8 && !memcmp("OpusHead", op.packet, 8))
+					{
+						int err = opus_head_parse(&header, op.packet, op.bytes);
+						if (err)
+						{
+							fprintf(stderr, "Not a ogg opus stream\n");
+							exit(1);
+						}
+						if (header.channel_count != 2 && header.input_sample_rate != 48000)
+						{
+							fprintf(stderr, "Wrong encoding for Discord, must be 48000Hz sample rate with 2 channels.\n");
+							exit(1);
+						}
+						continue;
+					}
+					/* Skip the opus tags */
+					if (op.bytes > 8 && !memcmp("OpusTags", op.packet, 8))
+						continue;
+
+					/* Send the audio */
+					int samples = opus_packet_get_samples_per_frame(op.packet, 48000);
+
+					v->voiceclient->send_audio_opus(op.packet, op.bytes, samples / 48);
+				}
+			}
+
+			/* Cleanup */
+			ogg_stream_clear(&os);
+			ogg_sync_clear(&oy);
+#endif // __linux__
+		};
     };
 };
 
-inline void command_queue(dpp::cluster& _bot, const dpp::message_create_t& event, std::vector<std::string_view> _args)
+inline void command_join(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
+{
+    if (!dpp::find_guild(_event.msg.guild_id)->connect_member_voice(_event.msg.author.id, false, true))
+    {
+        _bot.message_create(dpp::message(_event.msg.channel_id, "You need to be in a voicechannel."));
+        return;
+    };
+};
+
+inline void command_queue(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
     dpp::embed embed = dpp::embed().
         set_color(0xfafafa).
-        set_title("Queue (0 songs) queue length in time, no effects").
+        set_title("Song queue").
+        set_description(fmt::format("\
+            Total length : **{} ({} songs)**\
+            Loop : **no**\
+            Effects : **none**\
+		", time_to_clock(q.length()), q.nSongs()
+        )).
         set_footer(dpp::embed_footer().set_text(":3")).
         set_timestamp(time(0));
+    uint32_t i = 0;
     for (auto song : q)
     {
         embed.add_field(
-            song.name_,
-            "This **song** is " + std::to_string(song.length_) + " seconds"
+            fmt::format("`{}` - {}", ++i, song.title_),
+            fmt::format("`{}`", song.duration_)
         );
     };
-    _bot.message_create(dpp::message(event.msg.channel_id, embed));
+    _bot.message_create(dpp::message(_event.msg.channel_id, embed));
 };
 
-inline void command_skip(dpp::cluster& _bot, const dpp::message_create_t& event, std::vector<std::string_view> _args)
+inline void command_skip(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
     q.song_remove(0);
 };
 
-inline void command_jump(dpp::cluster& _bot, const dpp::message_create_t& event, std::vector<std::string_view> _args)
+inline void command_jump(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
     if (_args.size() > 1)
     {
@@ -67,7 +239,7 @@ inline void command_jump(dpp::cluster& _bot, const dpp::message_create_t& event,
     };
 };
 
-inline void command_move(dpp::cluster& _bot, const dpp::message_create_t& event, std::vector<std::string_view> _args)
+inline void command_move(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
     if (_args.size() > 2)
     {
@@ -81,4 +253,8 @@ inline void command_move(dpp::cluster& _bot, const dpp::message_create_t& event,
             };
         };
     };
+};
+
+inline void command_nowplaying(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
+{
 };
