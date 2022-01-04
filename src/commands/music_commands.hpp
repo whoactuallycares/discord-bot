@@ -16,14 +16,12 @@
 using namespace std::chrono_literals;
 
 player q;
+inline void command_join(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args);
+inline void command_leave(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args);
 
 inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
-    if (!dpp::find_guild(_event.msg.guild_id)->connect_member_voice(_event.msg.author.id, false, true))
-    {
-        _bot.message_create(dpp::message(_event.msg.channel_id, "You need to be in a voicechannel."));
-        return;
-    };
+	command_join(_bot, _event, _args);
 
 	if (_event.msg.filename.size() > 0)
 	{
@@ -49,21 +47,20 @@ inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& _event
         };
 		dpp::embed embed = dpp::embed().
 			set_color(0xfafafa).
-			set_title(q[q.nSongs() - 1].title_).
-            set_url(q[q.nSongs() - 1].url_).
+			set_title(q[q.nSongs() - 1].title).
+            set_url(q[q.nSongs() - 1].url).
 			set_description(fmt::format("\
 				Length : **{}**\
 				Position in queue : **{}**\
-			", q[q.nSongs() - 1].duration_, q.nSongs()
+			", q[q.nSongs() - 1].duration, q.nSongs()
 			)).
-            set_image(q[q.nSongs() - 1].thumbnail_).
+            set_image(q[q.nSongs() - 1].thumbnail).
 			set_footer(dpp::embed_footer().set_text(":3")).
 			set_timestamp(time(0));
 		_bot.message_create(dpp::message(_event.msg.channel_id, embed));
-		q.playing_ = true;
+		q.playing = true;
 		// play
-		dpp::voiceconn* v = _event.from->get_voice(_event.msg.guild_id);
-		if (v && v->voiceclient && v->voiceclient->is_ready())
+		if (q.voiceConnection && q.voiceConnection->voiceclient && q.voiceConnection->voiceclient->is_ready())
 		{
 #ifdef __linux__ 
 			ogg_sync_state oy;
@@ -77,7 +74,7 @@ inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& _event
 			for (uint32_t i = 0; i < 100; i++)
 			{
 				std::this_thread::sleep_for(50ms);
-				fd = fopen(std::string("songs/" + q[0].id_ + ".opus").c_str(), "rb");
+				fd = fopen(std::string("songs/" + q[0].id + ".opus").c_str(), "rb");
 			};
 			if (!fd)
 			{
@@ -188,11 +185,22 @@ inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& _event
 
 inline void command_join(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+	auto current_vc = _event.from->get_voice(_event.msg.guild_id);
+	auto users = dpp::find_guild(_event.msg.guild_id)->voice_members;
+	if (_event.from->get_voice(_event.msg.guild_id) && users.find(_event.msg.author.id) != users.end() && current_vc->channel_id == users.find(_event.msg.author.id)->second.channel_id)
+	{
+		command_leave(_bot, _event, _args);
+	};
     if (!dpp::find_guild(_event.msg.guild_id)->connect_member_voice(_event.msg.author.id, false, true))
     {
         _bot.message_create(dpp::message(_event.msg.channel_id, "You need to be in a voicechannel."));
         return;
     };
+};
+
+inline void command_leave(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
+{
+	_event.from->disconnect_voice(_event.msg.guild_id);
 };
 
 inline void command_queue(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
@@ -208,12 +216,11 @@ inline void command_queue(dpp::cluster& _bot, const dpp::message_create_t& _even
         )).
         set_footer(dpp::embed_footer().set_text(":3")).
         set_timestamp(time(0));
-    uint32_t i = 0;
-    for (auto song : q)
+    for (uint32_t i = 0; auto song : q)
     {
         embed.add_field(
-            fmt::format("`{}` - {}", ++i, song.title_),
-            fmt::format("`{}`", song.duration_)
+            fmt::format("`{}` - {}", ++i, song.title),
+            fmt::format("`{}`", song.duration)
         );
     };
     _bot.message_create(dpp::message(_event.msg.channel_id, embed));
@@ -257,4 +264,29 @@ inline void command_move(dpp::cluster& _bot, const dpp::message_create_t& _event
 
 inline void command_nowplaying(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+};
+
+inline void command_pause(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
+{
+	if (q.voiceConnection && q.voiceConnection->voiceclient && q.voiceConnection->voiceclient->is_ready())
+	{
+		q.voiceConnection->voiceclient->pause_audio(true);
+	};
+};
+
+inline void command_resume(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
+{
+	if (q.voiceConnection && q.voiceConnection->voiceclient && q.voiceConnection->voiceclient->is_ready())
+	{
+		q.voiceConnection->voiceclient->pause_audio(false);
+	};
+};
+
+inline void command_effects(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
+{
+};
+
+inline void command_shuffle(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
+{
+	std::shuffle(q.begin(), q.end(), rand::rng);
 };
