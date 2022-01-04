@@ -102,6 +102,8 @@ int main()
             }
         }
 	});
+    bot.on_voice_ready([](const auto& event) { std::cout << "voice ready"; });
+    bot.on_voice_client_disconnect([](const auto& event) { std::cout << "client disconnect"; });
 
     bot.on_ready([&bot](const auto& event) {
         std::cout << "Logged in as " << bot.me.username << "!\n";

@@ -1,7 +1,7 @@
 #pragma once
 #include <random>
 
-namespace rand
+namespace bot::rand
 {
 	std::random_device rd;
 	std::mt19937 rng = std::mt19937(rd());

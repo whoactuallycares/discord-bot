@@ -20,14 +20,19 @@ public:
 	void song_remove(uint32_t _i) { queue_.erase(queue_.begin() + _i); };
 	void songs_swap(uint32_t _i1, uint32_t _i2) { std::swap(queue_[_i1], queue_[_i2]); };
 	uint32_t nSongs() { return queue_.size(); };
-	uint32_t length() { uint32_t t = 0; for (auto s : queue_) t += clock_to_time(s.duration_); return t; };
+	uint32_t length() { uint32_t t = 0; for (auto s : queue_) t += clock_to_time(s.duration); return t; };
 
-	const std::vector<song>::iterator begin() { return queue_.begin(); };
-	const std::vector<song>::iterator end() { return queue_.end(); };
+	const auto begin() { return queue_.begin(); };
+	const auto end() { return queue_.end(); };
 
-	bool playing_ = true;
-	bool loop_ = false;
-	uint32_t volume_ = 100;
+	bool playing = true;
+	bool loop = false;
+	uint32_t volume = 100;
+	dpp::voiceconn* voiceConnection;
 private:
 	std::vector<song> queue_;
+};
+
+void play_loop()
+{
 };

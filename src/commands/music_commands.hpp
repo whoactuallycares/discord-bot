@@ -171,7 +171,7 @@ inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& _event
 					/* Send the audio */
 					int samples = opus_packet_get_samples_per_frame(op.packet, 48000);
 
-					v->voiceclient->send_audio_opus(op.packet, op.bytes, samples / 48);
+					q.voiceConnection->voiceclient->send_audio_opus(op.packet, op.bytes, samples / 48);
 				}
 			}
 
@@ -216,7 +216,8 @@ inline void command_queue(dpp::cluster& _bot, const dpp::message_create_t& _even
         )).
         set_footer(dpp::embed_footer().set_text(":3")).
         set_timestamp(time(0));
-    for (uint32_t i = 0; auto song : q)
+	uint32_t i = 0;
+    for (auto song : q)
     {
         embed.add_field(
             fmt::format("`{}` - {}", ++i, song.title),
@@ -288,5 +289,5 @@ inline void command_effects(dpp::cluster& _bot, const dpp::message_create_t& _ev
 
 inline void command_shuffle(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
-	std::shuffle(q.begin(), q.end(), rand::rng);
+	std::shuffle(q.begin(), q.end(), bot::rand::rng);
 };
