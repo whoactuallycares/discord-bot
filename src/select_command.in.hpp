@@ -5,7 +5,7 @@
 
 inline void select_command(dpp::cluster& _bot, const dpp::message_create_t& _event, std::vector<std::string_view> _args)
 {
-	if (!std::strncmp(_args[0].data(), "help", _args[0].size()))
+	if (_args[0] == "help")
 	{
 		dpp::embed embed = dpp::embed().
 			set_color(0xfafafa).

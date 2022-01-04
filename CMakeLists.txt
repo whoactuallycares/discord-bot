@@ -16,7 +16,7 @@ else()
 	target_link_libraries(bot PRIVATE dpp fmt)
 endif (UNIX)
 
-# Create folder for stroring downloaded music
+# Create folder for storing downloaded music
 make_directory("${CMAKE_BINARY_DIR}/songs")
 
 # Configure help file
@@ -31,7 +31,7 @@ foreach(COMMAND_DESCRIPTION IN LISTS data)
   "\n\t\t\tadd_field(\"${COMMAND_NAME}\",\"${COMMAND_DESCRIPTION}\")."
   )
   string(APPEND COMMANDS
-  "\n\telse if (!std::strncmp(_args[0].data(), \"${COMMAND_NAME}\", _args[0].size())) { command_${COMMAND_NAME}(_bot, _event, _args); }"
+  "\n\telse if (_args[0] == \"${COMMAND_NAME}\") { command_${COMMAND_NAME}(_bot, _event, _args); }"
   )
 endforeach()
 
