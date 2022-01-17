@@ -102,8 +102,11 @@ int main()
             }
         }
 	});
-    bot.on_voice_ready([](const auto& event) { std::cout << "voice ready"; });
-    bot.on_voice_client_disconnect([](const auto& event) { std::cout << "client disconnect"; });
+    bot.on_voice_ready([](const auto& event) { std::cout << "voice ready\n"; });
+    bot.on_voice_client_disconnect([](const auto& event) { std::cout << "client disconnect\n"; });
+    bot.on_voice_state_update([](const auto& event) { std::cout << "state update\n" << event.state.channel_id << "\n"; });
+    bot.on_voice_user_talking([](const auto& event) { std::cout << "user talking\n"; });
+    bot.on_voice_client_speaking([](const auto& event) { std::cout << "client speaking\n"; });
 
     bot.on_ready([&bot](const auto& event) {
         std::cout << "Logged in as " << bot.me.username << "!\n";
