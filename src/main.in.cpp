@@ -8,6 +8,9 @@
 #include <select_command.hpp>
 #include <string_view>
 #include <player/yt_search.hpp>
+#include <thread>
+#include <chrono>
+using namespace std::chrono_literals;
 
 std::vector<std::string_view> command_parse(std::string_view _msg)
 {
@@ -102,15 +105,29 @@ int main()
             }
         }
 	});
-    bot.on_voice_ready([](const auto& event) { std::cout << "voice ready\n"; });
+    //bot.on_typing_start([&bot](const auto& event) {
+	//	bot.message_create(dpp::message(event.typing_channel->id, "Watchu typing..."));
+	//});
     bot.on_voice_client_disconnect([](const auto& event) { std::cout << "client disconnect\n"; });
-    bot.on_voice_state_update([](const auto& event) { std::cout << "state update\n" << event.state.channel_id << "\n"; });
+    bot.on_voice_state_update([&bot](const auto& event) { 
+        std::cout << "state update\n" <<event.state.channel_id << "\n";
+        if (event.state.user_id == bot.me.id)
+        {
+            if (event.state.channel_id == 0)
+            {
+                players[event.state.guild_id].pause();
+            }
+            else
+            {
+                dpp::voiceconn v(event.state.shard, event.state.channel_id);
+                players[event.state.guild_id].play_loop(&v);
+            };
+        };
+	});
     bot.on_voice_user_talking([](const auto& event) { std::cout << "user talking\n"; });
     bot.on_voice_client_speaking([](const auto& event) { std::cout << "client speaking\n"; });
-
     bot.on_ready([&bot](const auto& event) {
         std::cout << "Logged in as " << bot.me.username << "!\n";
-
 
         dpp::slashcommand newcommand;
         // Create a new global command on ready event

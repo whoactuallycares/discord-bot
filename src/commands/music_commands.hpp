@@ -14,26 +14,18 @@
 #include <thread>
 #include <chrono>
 using namespace std::chrono_literals;
-#include <per_guild.hpp>
+
 per_guild<int> a;
-per_guild<player> players;
 inline void command_join(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args);
 inline void command_leave(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args);
 
 inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
-	player& p = players[_event.msg.guild_id];
-
-	auto v = _event.from->get_voice(_event.msg.guild_id);
-	std::cout << (v ? "true\n" : "false\n");
-	std::cout << (v->voiceclient ? "true\n" : "fals\n");
-	std::cout << (v->voiceclient->is_ready() ? "true\n" : "false\n");
-
 	if (_event.msg.filename.size() > 0)
 	{
 		_bot.message_create(dpp::message(_event.msg.channel_id, "a File"));
 	}
-
+	player& p = players[_event.msg.guild_id];
 	p.song_add(yt_dlp_search(std::string(_args[1].data(), _event.msg.content.size() - (_args[1].data() - _args[0].data() + 1))));
 	dpp::embed embed = dpp::embed().
 		set_color(0xfafafa).
@@ -49,7 +41,17 @@ inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& _event
 		set_timestamp(time(0));
 	_bot.message_create(dpp::message(_event.msg.channel_id, embed));
 
-	p.resume();
+	auto v = _event.from->get_voice(_event.msg.guild_id);
+	if( v && v->voiceclient && v->voiceclient->is_ready())
+	{
+		p.play_loop(v);
+	}
+	else
+	{
+		command_join(_bot, _event, _args);
+	};
+
+
 	/*
     else if (_args.size() > 1)
     {
@@ -219,9 +221,9 @@ inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& _event
 inline void command_join(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
 	player& p = players[_event.msg.guild_id];
-	p.voiceConnection = _event.from->get_voice(_event.msg.guild_id);
+	dpp::voiceconn* v = _event.from->get_voice(_event.msg.guild_id);
 	auto users = dpp::find_guild(_event.msg.guild_id)->voice_members;
-	if (_event.from->get_voice(_event.msg.guild_id) && users.find(_event.msg.author.id) != users.end() && p.voiceConnection->channel_id == users.find(_event.msg.author.id)->second.channel_id)
+	if (_event.from->get_voice(_event.msg.guild_id) && users.find(_event.msg.author.id) != users.end() && v->channel_id != users.find(_event.msg.author.id)->second.channel_id)
 	{
 		command_leave(_bot, _event, _args);
 	};
@@ -236,8 +238,10 @@ inline void command_join(dpp::cluster& _bot, const dpp::message_create_t& _event
 
 inline void command_leave(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+	player& p = players[_event.msg.guild_id];
 	_event.from->disconnect_voice(_event.msg.guild_id);
 	_bot.message_create(dpp::message(_event.msg.channel_id, fmt::format("gi: {}\npg: {}", _event.msg.guild_id, a[_event.msg.guild_id]++)));
+	p.pause();
 };
 
 inline void command_queue(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
@@ -311,18 +315,22 @@ inline void command_nowplaying(dpp::cluster& _bot, const dpp::message_create_t& 
 inline void command_pause(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
 	player& p = players[_event.msg.guild_id];
-	if (p.voiceConnection && p.voiceConnection->voiceclient && p.voiceConnection->voiceclient->is_ready())
-	{
-		p.voiceConnection->voiceclient->pause_audio(true);
-	};
+	//p.voiceConnection->voiceclient->pause_audio(true);
+	p.pause();
 };
 
 inline void command_resume(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
 	player& p = players[_event.msg.guild_id];
-	if (p.voiceConnection && p.voiceConnection->voiceclient && p.voiceConnection->voiceclient->is_ready())
+	//p.voiceConnection->voiceclient->pause_audio(false);
+	auto v = _event.from->get_voice(_event.msg.guild_id);
+	if (v && v->voiceclient && v->voiceclient->is_ready())
 	{
-		p.voiceConnection->voiceclient->pause_audio(false);
+		p.play_loop(v);
+	}
+	else
+	{
+		_bot.message_create(dpp::message(_event.msg.channel_id, "Need to be in a voicechannel:w"));
 	};
 };
 
