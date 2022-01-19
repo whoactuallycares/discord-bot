@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <thread>
+#include <utils/random.hpp>
 #define YT_DLP_PATH "yt-dlp"
 
 struct song
@@ -37,7 +38,7 @@ struct song
 	std::string duration;
 };
 
-song yt_dlp_url(const std::string& _url)
+inline song yt_dlp_url(const std::string& _url)
 {
 	song s(_url);
 	std::thread t([s, _url]() {
@@ -47,7 +48,7 @@ song yt_dlp_url(const std::string& _url)
 	return s;
 };
 
-song yt_dlp_search(const std::string& _name)
+inline song yt_dlp_search(const std::string& _name)
 {
 	song s(_name, true);
 	std::thread t([s]() {

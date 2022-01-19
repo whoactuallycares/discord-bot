@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 add_subdirectory("${CMAKE_SOURCE_DIR}/lib/DPP")
 add_subdirectory("${CMAKE_SOURCE_DIR}/lib/fmt")
 
-add_executable(bot "src/main.cpp")
+add_executable(bot "src/main.cpp" "src/player/player.cpp")
 target_include_directories(bot PRIVATE "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/lib/DPP/include" "${CMAKE_SOURCE_DIR}/lib/mpg123/src" "/usr/include/opus/" "${CMAKE_BINARY_DIR}")
 
 if (UNIX)
