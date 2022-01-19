@@ -120,12 +120,14 @@ int main()
             }
             else
             {
-                dpp::voiceconn v(event.state.shard, event.state.channel_id);
-                std::cout << "Vociceclient = " << v.voiceclient << "\n";
                 //std::cout << "Vociceready = " << v.voiceclient->is_ready() << "\n";
                 //players[event.state.guild_id].play_loop(&v);
             };
         };
+	});
+    bot.on_voice_ready([](const dpp::voice_ready_t& event) {
+		dpp::voiceconn* v = event.from->get_voice(event.voice_client->server_id);
+		std::cout << "Vociceclient = " << v->voiceclient << "\n";
 	});
     bot.on_voice_user_talking([](const auto& event) { std::cout << "user talking\n"; });
     bot.on_voice_client_speaking([](const auto& event) { std::cout << "client speaking\n"; });
@@ -157,6 +159,8 @@ int main()
         };
         select_command(bot, event, command_parse(event.msg.content));
 	});
+
+    bot.on_log([](const dpp::log_t& log) {std::cout << log.message << "\n"; });
 
     bot.start(false);
     return 0;

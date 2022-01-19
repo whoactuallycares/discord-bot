@@ -13,14 +13,14 @@ using namespace std::chrono_literals;
 
 void player::rebuild_buffer()
 {
-    dpp::voiceconn v(client_, guildId_);
+	dpp::voiceconn* v = client_->get_voice(guildId_);
     std::cout << "Cumming\n";
-    std::cout << "Vociceclient = " << v.voiceclient << "\n";
-    std::cout << "Vociceready = " << v.voiceclient->is_ready() << "\n";
-    if (v.voiceclient && v.voiceclient->is_ready())
+    std::cout << "Vociceclient = " << v->voiceclient << "\n";
+    std::cout << "Vociceready = " << v->voiceclient->is_ready() << "\n";
+    if (v->voiceclient && v->voiceclient->is_ready())
     {
     std::cout << "Cumming\n";
-        v.voiceclient->stop_audio();
+        v->voiceclient->stop_audio();
         ogg_sync_state oy;
         ogg_stream_state os;
         ogg_page og;
@@ -131,10 +131,10 @@ void player::rebuild_buffer()
                 /* Send the audio */
                 int samples = opus_packet_get_samples_per_frame(op.packet, 48000);
                 std::cout << "Woo\n";
-                v.voiceclient->send_audio_opus(op.packet, op.bytes, samples / 48);
+                v->voiceclient->send_audio_opus(op.packet, op.bytes, samples / 48);
             }
         }
-        v.voiceclient->insert_marker("end");
+        v->voiceclient->insert_marker("end");
         ogg_stream_clear(&os);
         ogg_sync_clear(&oy);
     };
