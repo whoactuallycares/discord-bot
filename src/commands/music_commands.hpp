@@ -61,6 +61,7 @@ inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& _event
 		_bot.message_create(dpp::message(_event.msg.channel_id, embed));
 
 		p.resume();
+        players.serialize("test.bin");
 		auto v = _event.from->get_voice(_event.msg.guild_id);
 		if(!v || !v->voiceclient || !v->voiceclient->is_ready())
 		{

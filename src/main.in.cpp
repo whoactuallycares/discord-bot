@@ -90,6 +90,7 @@ int main()
     // Create the bot
     dpp::cluster bot("@TOKEN@");
     players.init(bot);
+    players.deserialize("test.bin");
 
      //The interaction create event is fired when someone issues your commands 
     bot.on_interaction_create([&bot](const dpp::interaction_create_t& event) {
@@ -126,8 +127,8 @@ int main()
         };
 	});
     bot.on_voice_ready([](const dpp::voice_ready_t& event) {
-		dpp::voiceconn* v = event.from->get_voice(event.voice_client->server_id);
-		std::cout << "Vociceclient = " << v->voiceclient << "\n";
+		//dpp::voiceconn* v = event.from->get_voice(event.voice_client->server_id);
+		//std::cout << "Vociceclient = " << v->voiceclient << "\n";
 	});
     bot.on_voice_user_talking([](const auto& event) { std::cout << "user talking\n"; });
     bot.on_voice_client_speaking([](const auto& event) { std::cout << "client speaking\n"; });

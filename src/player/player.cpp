@@ -21,6 +21,7 @@ void player::rebuild_buffer()
     {
     std::cout << "Cumming\n";
         v->voiceclient->stop_audio();
+        v->voiceclient->pause_audio(0);
         ogg_sync_state oy;
         ogg_stream_state os;
         ogg_page og;

@@ -3,6 +3,7 @@ cmake_minimum_required (VERSION 3.13)
 # Initialize project
 project ("Bot" CXX)
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_FLAGS "-fconcepts")
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/lib/DPP")
 add_subdirectory("${CMAKE_SOURCE_DIR}/lib/fmt")

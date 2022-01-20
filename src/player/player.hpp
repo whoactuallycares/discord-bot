@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include <per_guild.hpp>
+#include <structures/per_guild.hpp>
 #include "yt_search.hpp"
 #include <utils/clock.hpp>
 
@@ -8,6 +8,7 @@ class player
 {
 public:
 	player(dpp::discord_client* _client, dpp::snowflake _guildId) : client_(_client), guildId_(_guildId) {};
+	player(const player& _other) : queue_(_other.queue_), client_(_other.client_), guildId_(_other.guildId_), volume_(_other.volume_), loop_(_other.loop_) {};
 	~player() = default;
 
 	const song& operator[](uint32_t _i)
@@ -24,6 +25,9 @@ public:
 
 	void skip() // TODO : change to "jumpto" function instead
 		{ voiceConnection_()->voiceclient->skip_to_next_marker(); };
+
+	dpp::snowflake guildId()
+		{ return guildId_; };
 
 	uint32_t nSongs()
 		{ return queue_.size(); };
