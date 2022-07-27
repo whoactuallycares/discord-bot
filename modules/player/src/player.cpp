@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ogg/ogg.h>
-#include <opus/opusfile.h>
+#include <opusfile.h>
 #include <thread>
 #include <chrono>
 using namespace std::chrono_literals;

@@ -1,9 +1,9 @@
 #pragma once
 #include <dpp/dpp.h>
-#include <player/player.hpp>
-#include <fmt/core.h>
-#include <utils/random.hpp>
-#include <utils/clock.hpp>
+#include "player.hpp"
+#include <fmt/format.h>
+#include "utils/random.hpp"
+#include "utils/clock.hpp"
 #ifdef __linux__
 #include <iomanip>
 #include <sstream>
@@ -22,9 +22,10 @@ inline void command_leave(dpp::cluster& _bot, const dpp::message_create_t& _even
 
 inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+    players.init(_bot);
 	if (_event.msg.filename.size() > 0)
 	{
-        std::cout << "Oooh a file: " << _event.msg.filename << "\n";
+        std::cout << "Oooh a file: " << _event.msg.filename[0] << "\n";
 		_bot.message_create(dpp::message(_event.msg.channel_id, "Tf you sending a file for m8?"));
 	}
     else if (_args.size() > 1)
@@ -77,6 +78,7 @@ inline void command_play(dpp::cluster& _bot, const dpp::message_create_t& _event
 
 inline void command_join(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+    players.init(_bot);
 	player& p = players[_event.msg.guild_id];
 	dpp::voiceconn* v = _event.from->get_voice(_event.msg.guild_id);
 	auto users = dpp::find_guild(_event.msg.guild_id)->voice_members;
@@ -95,6 +97,7 @@ inline void command_join(dpp::cluster& _bot, const dpp::message_create_t& _event
 
 inline void command_leave(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+    players.init(_bot);
 	player& p = players[_event.msg.guild_id];
 	_event.from->disconnect_voice(_event.msg.guild_id);
 	//_bot.message_create(dpp::message(_event.msg.channel_id, fmt::format("gi: {}\npg: {}", _event.msg.guild_id, a[_event.msg.guild_id]++)));
@@ -103,6 +106,7 @@ inline void command_leave(dpp::cluster& _bot, const dpp::message_create_t& _even
 
 inline void command_queue(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+    players.init(_bot);
 	player& p = players[_event.msg.guild_id];
     dpp::embed embed = dpp::embed().
         set_color(0xfafafa).
@@ -128,6 +132,7 @@ inline void command_queue(dpp::cluster& _bot, const dpp::message_create_t& _even
 
 inline void command_skip(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+    players.init(_bot);
 	player& p = players[_event.msg.guild_id];
     p.song_remove(0);
 	p.skip();
@@ -135,6 +140,7 @@ inline void command_skip(dpp::cluster& _bot, const dpp::message_create_t& _event
 
 inline void command_jump(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+    players.init(_bot);
 	player& p = players[_event.msg.guild_id];
     if (_args.size() > 1)
     {
@@ -151,6 +157,7 @@ inline void command_jump(dpp::cluster& _bot, const dpp::message_create_t& _event
 
 inline void command_move(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+    players.init(_bot);
 	player& p = players[_event.msg.guild_id];
     if (_args.size() > 2)
     {
@@ -168,26 +175,42 @@ inline void command_move(dpp::cluster& _bot, const dpp::message_create_t& _event
 
 inline void command_nowplaying(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+    players.init(_bot);
 };
 
 inline void command_pause(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+    players.init(_bot);
 	player& p = players[_event.msg.guild_id];
 	p.pause();
 };
 
 inline void command_resume(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+    players.init(_bot);
 	player& p = players[_event.msg.guild_id];
 	p.resume();
 };
 
 inline void command_effects(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+    players.init(_bot);
 };
 
 inline void command_shuffle(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
+    players.init(_bot);
 	player& p = players[_event.msg.guild_id];
 	std::shuffle(p.begin(), p.end(), bot::rand::rng);
 };
+
+extern "C" __declspec(dllexport) const char name[] = "player";
+
+extern "C" __declspec(dllexport) const std::pair<std::string, std::function<void(dpp::cluster&, const dpp::message_create_t&, const std::vector<std::string_view>&)>> commands[] = {
+	{"join", command_join},
+	{"leave", command_leave},
+	{"play", command_play},
+	{"queue", command_queue},
+};
+
+extern "C" __declspec(dllexport) const uint32_t nCommands = sizeof(commands) / sizeof(commands[0]);

@@ -1,8 +1,8 @@
 #pragma once
 #include <vector>
-#include <structures/per_guild.hpp>
 #include "yt_search.hpp"
-#include <utils/clock.hpp>
+#include "utils/clock.hpp"
+#include "per_guild.hpp"
 
 class player
 {
@@ -26,8 +26,8 @@ public:
 	void skip() // TODO : change to "jumpto" function instead
 		{ voiceConnection_()->voiceclient->skip_to_next_marker(); };
 
-	dpp::snowflake guildId()
-		{ return guildId_; };
+	//dpp::snowflake guildId()
+	//	{ return guildId_; };
 
 	uint32_t nSongs()
 		{ return queue_.size(); };
@@ -66,5 +66,6 @@ private:
 	bool loop_ = false;
 };
 
-// List of all the guilds' players
 inline per_guild<player> players;
+// List of all the guilds' players
+//inline per_guild<player> players;

@@ -1,0 +1,21 @@
+cmake_minimum_required (VERSION 3.20)
+
+macro(SUBDIRLIST result curdir)
+    file(GLOB children RELATIVE ${curdir} ${curdir}/*)
+    set(dirlist "")
+    foreach(child ${children})
+        if(IS_DIRECTORY ${curdir}/${child})
+            list(APPEND dirlist ${child})
+        endif()
+    endforeach()
+    set(${result} ${dirlist})
+endmacro()
+
+add_custom_target(CB_MODULES_ALL)
+SUBDIRLIST(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR})
+foreach(subdir ${SUBDIRS})
+    message("Building \"${subdir}\" module")
+    add_subdirectory(${subdir})
+    add_dependencies(CB_MODULES_ALL ${subdir})
+endforeach()
+

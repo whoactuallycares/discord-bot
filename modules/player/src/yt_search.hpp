@@ -1,7 +1,8 @@
 #pragma once
 #include <string>
 #include <thread>
-#include <utils/random.hpp>
+#include <fstream>
+#include "utils/random.hpp"
 #define YT_DLP_PATH "yt-dlp"
 
 struct song

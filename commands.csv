@@ -11,3 +11,4 @@ pause,Stop playing
 resume,Start playing
 effects,Set the queue effects
 shuffle,Shuffle the queue
+makechannel,Doesn't do anything at all

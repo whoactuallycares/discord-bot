@@ -2,15 +2,71 @@
 #include <vector>
 #include <string>
 #include <dpp/dpp.h>
-#include <dpp/fmt/format.h>
-#include "player/player.hpp"
-//#include "per_guild.hpp"
-#include <select_command.hpp>
+#include <fmt/format.h> // TODO : Replace with ptl::fmt
 #include <string_view>
-#include <player/yt_search.hpp>
+#include "commands.hpp"
 #include <thread>
 #include <chrono>
+#include <token.hpp>
 using namespace std::chrono_literals;
+
+#ifdef _WIN32
+#include <windows.h>
+#define dlopen(name, flags) LoadLibraryA(name)
+#define dlclose(handle) FreeLibrary(static_cast<HMODULE>(handle))
+#define dlsym(handle, name) GetProcAddress(static_cast<HMODULE>(handle), name)
+static_assert(sizeof(void*) == sizeof(HMODULE));
+#else
+#include <dlfcn.h>
+#include <functional>
+#endif // _WIN32
+
+std::vector<std::pair<std::string, std::function<void(dpp::cluster&, const dpp::message_create_t&, const std::vector<std::string_view>&)>>> commands = {
+	{"info", command_info},
+	{"modules", command_modules},
+};
+uint32_t nModules = 0;
+
+uint32_t getNModules()
+{
+    return nModules;
+}
+std::vector<std::pair<std::string, std::function<void(dpp::cluster&, const dpp::message_create_t&, const std::vector<std::string_view>&)>>>& getcommands()
+{
+    return commands;
+};
+
+void* loadmod(const char* _name)
+{
+	void* hMod  = dlopen(_name, RTLD_NOW);
+    if (!hMod)
+        return 0;
+	//void(*func1)() = (void(*)())dlsym(lib1, "func1");
+	//if (!func1)
+	//{
+	//	std::cout << "lib1 func1 doesn't exist";
+	//	return 0;
+	//};
+	void* modName = dlsym(hMod, "name");
+    DWORD dd = GetLastError();
+	if (!modName)
+		return 0;
+	std::cout << "Loaded module : " << modName;
+	void* nCommands = dlsym(hMod, "nCommands");
+	void* command_list = dlsym(hMod, "commands");
+    for (uint32_t i = 0; i < *static_cast<uint32_t*>(nCommands); i++)
+    {
+        commands.push_back(static_cast<std::pair<std::string, std::function<void(dpp::cluster&, const dpp::message_create_t&, const std::vector<std::string_view>&)>>*>(command_list)[i]);
+        std::cout << "Loaded command " << commands[commands.size() - 1].first << "\n";
+    };
+    nModules++;
+	return hMod;
+};
+
+void freemod(void* _module)
+{
+	dlclose(_module);
+};
 
 std::vector<std::string_view> command_parse(std::string_view _msg)
 {
@@ -88,9 +144,9 @@ uint32_t find(std::string _str, std::vector<std::string> _strs)
 int main()
 {
     // Create the bot
-    dpp::cluster bot("@TOKEN@");
-    players.init(bot);
-    players.deserialize("test.bin");
+    dpp::cluster bot(DISCORD_BOT_TOKEN, dpp::i_default_intents | dpp::i_message_content);
+    //players.init(bot);
+    //players.deserialize("test.bin");
 
      //The interaction create event is fired when someone issues your commands 
     bot.on_interaction_create([&bot](const dpp::interaction_create_t& event) {
@@ -117,7 +173,7 @@ int main()
         {
             if (event.state.channel_id == 0)
             {
-                players[event.state.guild_id].pause();
+                //players[event.state.guild_id].pause();
             }
             else
             {
@@ -153,12 +209,26 @@ int main()
         bot.global_command_create(newcommand);
 	});
 
-    bot.on_message_create([&bot](const auto& event) {
-        if (event.msg.content[0] != '!')
+    bot.on_message_create([&bot](const auto& _event) {
+        // Make sure the message is a valid command
+        const std::string& content = _event.msg.content;
+        if (content.size() <= 2)
+            return;
+        if (content[0] != '\'')
+            return;
+        const auto parsed = command_parse(content);
+        const auto it = std::find_if(commands.begin(), commands.end(),
+            [&parsed](const std::pair <std::string, std::function<void(dpp::cluster&, const dpp::message_create_t&, const std::vector<std::string_view>&)>>& _command)
+            { return _command.first == parsed[0]; }
+        );
+        if (it == commands.end())
         {
+            std::string cmdName{ parsed[0].data(), parsed[0].size() };
+            bot.message_create(dpp::message(_event.msg.channel_id, "Unknown command `" + cmdName + "`"));
             return;
         };
-        select_command(bot, event, command_parse(event.msg.content));
+        (*it).second(bot, _event, parsed);
+        //select_command(bot, _event, command_parse(_event.msg.content));
 	});
 
     bot.on_log([](const dpp::log_t& log) {std::cout << log.message << "\n"; });

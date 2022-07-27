@@ -27,7 +27,7 @@ public:
 	void init(dpp::cluster& _bot)
 		{ bot_ = &_bot; };
 
-	void serialize(const std::string& _path) requires (const T& c) { c.serialize(); }
+	void serialize(const std::string& _path)
 	{
 		std::ofstream f(_path, std::ios::binary);
 		if (!f.is_open())

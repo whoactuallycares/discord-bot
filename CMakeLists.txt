@@ -1,43 +1,14 @@
-cmake_minimum_required (VERSION 3.13)
+cmake_minimum_required (VERSION 3.20)
 
-# Initialize project
-project ("Bot" CXX)
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_FLAGS "-fconcepts")
 
-add_subdirectory("${CMAKE_SOURCE_DIR}/lib/DPP")
-add_subdirectory("${CMAKE_SOURCE_DIR}/lib/fmt")
+project(cb CXX)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+add_subdirectory("core")
 
-add_executable(bot "src/main.cpp" "src/player/player.cpp")
-target_include_directories(bot PRIVATE "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/lib/DPP/include" "${CMAKE_SOURCE_DIR}/lib/mpg123/src" "/usr/include/opus/" "${CMAKE_BINARY_DIR}")
-
-if (UNIX)
-	target_link_libraries(bot PRIVATE dpp ogg opus opusfile pthread fmt)
-else()
-	target_link_libraries(bot PRIVATE dpp fmt)
-endif (UNIX)
-
-# Create folder for storing downloaded music
-make_directory("${CMAKE_BINARY_DIR}/songs")
-
-# Configure help file
-set(HELP "")
-set(COMMANDS "")
-file(READ "commands.csv" data)
-string(REPLACE "\n" ";" data "${data}")
-foreach(COMMAND_DESCRIPTION IN LISTS data)
-  string(REPLACE "," ";" COMMAND_DESCRIPTION "${COMMAND_DESCRIPTION}")
-  list(POP_FRONT COMMAND_DESCRIPTION COMMAND_NAME)
-  string(APPEND HELP
-  "\n\t\t\tadd_field(\"${COMMAND_NAME}\",\"${COMMAND_DESCRIPTION}\")."
-  )
-  string(APPEND COMMANDS
-  "\n\telse if (_args[0] == \"${COMMAND_NAME}\") { command_${COMMAND_NAME}(_bot, _event, _args); }"
-  )
-endforeach()
-
-configure_file("src/select_command.in.hpp" "select_command.hpp")
-
-# Add token to main file
-file(READ ".token" TOKEN)
-configure_file("src/main.in.cpp" "src/main.cpp")
+option(CB_BUILD_MODULES "Build modules" ON)
+if(${CB_BUILD_MODULES})
+	add_subdirectory("modules")
+	add_dependencies(bot CB_MODULES_ALL)
+endif()

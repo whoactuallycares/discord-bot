@@ -1,6 +1,15 @@
-[submodule "lib/DPP"]
-	path = lib/DPP
+[submodule "core/lib/DPP"]
+	path = core/lib/DPP
 	url = https://github.com/brainboxdotcc/DPP.git
-[submodule "lib/fmt"]
-	path = lib/fmt
+[submodule "core/lib/fmt"]
+	path = core/lib/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "modules/player/lib/ogg"]
+	path = modules/player/lib/ogg
+	url = https://github.com/xiph/ogg.git
+[submodule "modules/player/lib/opus"]
+	path = modules/player/lib/opus
+	url = https://github.com/xiph/opus.git
+[submodule "modules/player/lib/opusfile/opusfile"]
+	path = modules/player/lib/opusfile/opusfile
+	url = https://github.com/xiph/opusfile.git
