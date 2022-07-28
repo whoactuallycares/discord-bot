@@ -9,16 +9,14 @@ inline void command_ping(dpp::cluster& _bot, const dpp::message_create_t& _event
 {
 	_bot.message_create(dpp::message(_event.msg.channel_id, "Pong!"));
 };
-uint32_t getNModules();
-std::vector<std::pair<std::string, std::function<void(dpp::cluster&, const dpp::message_create_t&, const std::vector<std::string_view>&)>>>& getcommands();
-void* loadmod(const char*);
+
 inline void command_info(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
 	dpp::embed embed = dpp::embed().
 		set_color(0xfafafa).
-		add_field("Version", "v0.1.4", true).
-		add_field("Modules", std::to_string(getNModules()), true).
-		add_field("Commands", std::to_string(getcommands().size()), true).
+		add_field("Version", "v0.1.5", true).
+		add_field("Modules", std::to_string(commands.nModules()), true).
+		add_field("Commands", std::to_string(commands.nCommands()), true).
 		set_footer(dpp::embed_footer().set_text(":3")).
 		set_timestamp(time(0));
 	_bot.message_create(dpp::message(_event.msg.channel_id, embed));
@@ -39,10 +37,16 @@ inline void command_modules(dpp::cluster& _bot, const dpp::message_create_t& _ev
 		{
 			std::string modname = { _args[2].data(), _args[2].size() };
 			modname += ".dll";
-			if(loadmod(modname.c_str()))
+			try
+			{
+				commands.register_module(modname.c_str());
 				_bot.message_create(dpp::message(_event.msg.channel_id, "success"));
-			else
-				_bot.message_create(dpp::message(_event.msg.channel_id, "failed"));
+			}
+			catch(std::exception error)
+			{
+				std::cout << error.what() << "\n";
+				_bot.message_create(dpp::message(_event.msg.channel_id, error.what()));
+			}
 		}
 		else if (_args[1] == "unload")
 		{

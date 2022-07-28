@@ -4,69 +4,12 @@
 #include <dpp/dpp.h>
 #include <fmt/format.h> // TODO : Replace with ptl::fmt
 #include <string_view>
-#include "commands.hpp"
 #include <thread>
 #include <chrono>
 #include <token.hpp>
+#include "module_manager.hpp"
 using namespace std::chrono_literals;
 
-#ifdef _WIN32
-#include <windows.h>
-#define dlopen(name, flags) LoadLibraryA(name)
-#define dlclose(handle) FreeLibrary(static_cast<HMODULE>(handle))
-#define dlsym(handle, name) GetProcAddress(static_cast<HMODULE>(handle), name)
-static_assert(sizeof(void*) == sizeof(HMODULE));
-#else
-#include <dlfcn.h>
-#include <functional>
-#endif // _WIN32
-
-std::vector<std::pair<std::string, std::function<void(dpp::cluster&, const dpp::message_create_t&, const std::vector<std::string_view>&)>>> commands = {
-	{"info", command_info},
-	{"modules", command_modules},
-};
-uint32_t nModules = 0;
-
-uint32_t getNModules()
-{
-    return nModules;
-}
-std::vector<std::pair<std::string, std::function<void(dpp::cluster&, const dpp::message_create_t&, const std::vector<std::string_view>&)>>>& getcommands()
-{
-    return commands;
-};
-
-void* loadmod(const char* _name)
-{
-	void* hMod  = dlopen(_name, RTLD_NOW);
-    if (!hMod)
-        return 0;
-	//void(*func1)() = (void(*)())dlsym(lib1, "func1");
-	//if (!func1)
-	//{
-	//	std::cout << "lib1 func1 doesn't exist";
-	//	return 0;
-	//};
-	void* modName = dlsym(hMod, "name");
-    DWORD dd = GetLastError();
-	if (!modName)
-		return 0;
-	std::cout << "Loaded module : " << modName;
-	void* nCommands = dlsym(hMod, "nCommands");
-	void* command_list = dlsym(hMod, "commands");
-    for (uint32_t i = 0; i < *static_cast<uint32_t*>(nCommands); i++)
-    {
-        commands.push_back(static_cast<std::pair<std::string, std::function<void(dpp::cluster&, const dpp::message_create_t&, const std::vector<std::string_view>&)>>*>(command_list)[i]);
-        std::cout << "Loaded command " << commands[commands.size() - 1].first << "\n";
-    };
-    nModules++;
-	return hMod;
-};
-
-void freemod(void* _module)
-{
-	dlclose(_module);
-};
 
 std::vector<std::string_view> command_parse(std::string_view _msg)
 {
@@ -141,8 +84,15 @@ uint32_t find(std::string _str, std::vector<std::string> _strs)
     };
 };
 
+CommandRegistry commands;
+#include "commands.hpp"
+
 int main()
 {
+    // Register core commands
+    commands.register_command({ .name = "info", .description = "Display information about the bot core", .signature = "info", .func = command_info });
+    commands.register_command({ .name = "modules", .description = "Load, unload or list modules", .signature = "modules `enum`:load/unload/list `string?`:name", .func = command_modules });
+	
     // Create the bot
     dpp::cluster bot(DISCORD_BOT_TOKEN, dpp::i_default_intents | dpp::i_message_content);
     //players.init(bot);
@@ -217,17 +167,14 @@ int main()
         if (content[0] != '\'')
             return;
         const auto parsed = command_parse(content);
-        const auto it = std::find_if(commands.begin(), commands.end(),
-            [&parsed](const std::pair <std::string, std::function<void(dpp::cluster&, const dpp::message_create_t&, const std::vector<std::string_view>&)>>& _command)
-            { return _command.first == parsed[0]; }
-        );
-        if (it == commands.end())
+		const std::string cmdName{ parsed[0].data(), parsed[0].size() };
+        command_function fnCmd = commands.find(cmdName);
+        if(!fnCmd)
         {
-            std::string cmdName{ parsed[0].data(), parsed[0].size() };
             bot.message_create(dpp::message(_event.msg.channel_id, "Unknown command `" + cmdName + "`"));
             return;
         };
-        (*it).second(bot, _event, parsed);
+        fnCmd(bot, _event, parsed);
         //select_command(bot, _event, command_parse(_event.msg.content));
 	});
 

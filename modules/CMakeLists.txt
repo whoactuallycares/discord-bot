@@ -16,6 +16,7 @@ SUBDIRLIST(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR})
 foreach(subdir ${SUBDIRS})
     message("Building \"${subdir}\" module")
     add_subdirectory(${subdir})
+    target_include_directories(${subdir} PUBLIC "${CMAKE_SOURCE_DIR}/common")
     add_dependencies(CB_MODULES_ALL ${subdir})
 endforeach()
 

@@ -15,6 +15,7 @@
 #endif // __linux__
 #include <thread>
 #include <chrono>
+#include <headers.hpp>
 using namespace std::chrono_literals;
 
 inline void command_join(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args);
@@ -204,13 +205,16 @@ inline void command_shuffle(dpp::cluster& _bot, const dpp::message_create_t& _ev
 	std::shuffle(p.begin(), p.end(), bot::rand::rng);
 };
 
-extern "C" __declspec(dllexport) const char name[] = "player";
-
-extern "C" __declspec(dllexport) const std::pair<std::string, std::function<void(dpp::cluster&, const dpp::message_create_t&, const std::vector<std::string_view>&)>> commands[] = {
-	{"join", command_join},
-	{"leave", command_leave},
-	{"play", command_play},
-	{"queue", command_queue},
+extern "C" __declspec(dllexport) const command_header commands[] = {
+	{.name = "join", .description = "Join current voice chat", .signature = "join", .func = command_join},
+	{.name = "leave", .description = "Leave current vocie chat", .signature = "leave", .func = command_leave},
+	{.name = "play", .description = "Play a video from youtube", .signature = "play `string`:name", .func = command_play},
+	{.name = "queue", .description = "Show videos in queue", .signature = "queue", .func = command_queue},
 };
 
-extern "C" __declspec(dllexport) const uint32_t nCommands = sizeof(commands) / sizeof(commands[0]);
+extern "C" __declspec(dllexport) const module_header modInfo {
+    .name = "player",
+    .description = "Play videos from youtube in voice chat",
+    .version = MODULE_MAKE_VERSION(0, 1, 0),
+    .nCommands = sizeof(commands) / sizeof(commands[0]),
+};

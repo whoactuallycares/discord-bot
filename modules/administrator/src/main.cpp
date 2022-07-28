@@ -3,6 +3,7 @@
 #include <functional>
 #include <string>
 #include <string_view>
+#include <headers.hpp>
 
 inline void command_disconnect(dpp::cluster& _bot, const dpp::message_create_t& _event, const std::vector<std::string_view>& _args)
 {
@@ -71,15 +72,17 @@ inline void command_channel_create(dpp::cluster& _bot, const dpp::message_create
 	_bot.channel_create(channel);
 };
 
-
-extern "C" __declspec(dllexport) const char name[] = "player";
-
-extern "C" __declspec(dllexport) const std::pair<std::string, std::function<void(dpp::cluster&, const dpp::message_create_t&, const std::vector<std::string_view>&)>> commands[] = {
-	{"ban-----", command_ban},
-	{"unban-----", command_unban},
-	{"mute", command_mute},
-	{"unmute", command_unmute},
-	{"channel_create", command_channel_create},
+extern "C" __declspec(dllexport) const command_header commands[] = {
+	{.name = "ban--", .description = "Banish a user from the server", .signature = "ban `user`:user", .func = command_ban},
+	{.name = "unban--", .description = "Revoke banishment of a user", .signature = "unban `user`:user", .func = command_unban},
+	{.name = "mute", .description = "Mute a user", .signature = "mute `user`:user", .func = command_mute},
+	{.name = "unmute", .description = "Unmute a user", .signature = "unmute `user`:user", .func = command_unmute},
+	{.name = "channel_create", .description = "Create a new text channel", .signature = "channel_create", .func = command_channel_create},
 };
 
-extern "C" __declspec(dllexport) const uint32_t nCommands = sizeof(commands) / sizeof(commands[0]);
+extern "C" __declspec(dllexport) const module_header modInfo {
+    .name = "administrator",
+    .description = "Control and administrate the server",
+    .version = MODULE_MAKE_VERSION(0, 1, 0),
+    .nCommands = sizeof(commands) / sizeof(commands[0]),
+};
