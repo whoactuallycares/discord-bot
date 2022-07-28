@@ -8,6 +8,7 @@
 #include <chrono>
 #include <token.hpp>
 #include "module_manager.hpp"
+#include "group_manager.hpp"
 using namespace std::chrono_literals;
 
 

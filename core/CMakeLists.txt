@@ -6,7 +6,7 @@ project("Bot" CXX)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/lib/DPP")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/lib/fmt")
 
-add_executable(bot "src/main.cpp" "src/module_manager.cpp")
+add_executable(bot "src/main.cpp" "src/module_manager.cpp" "src/group_manager.cpp")
 set_target_properties(bot
 	PROPERTIES
 	CXX_STANDARD 23)
