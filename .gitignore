@@ -2,3 +2,4 @@
 .token
 build
 out
+modules/anime/src/codes.hpp
